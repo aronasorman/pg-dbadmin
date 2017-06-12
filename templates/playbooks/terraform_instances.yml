@@ -1,5 +1,5 @@
 ---
-- hosts: gateway
+- hosts: localhost # assume this playbook is run from the gateway.
   tasks:
     - name: run terraform
       command: "{{ ansible_env.HOME }}/.dbadmin/bin/terraform apply --state={{ ansible_env.HOME }}/.dbadmin/terraform.tfstate {{ ansible_env.HOME }}/.dbadmin/terraform"

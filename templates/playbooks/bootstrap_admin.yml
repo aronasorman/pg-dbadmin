@@ -1,5 +1,5 @@
 ---
-- hosts: gateway
+- hosts: localhost # we assume this playbook is being run on the gateway.
   tasks:
     - name: add gcsfuse to apt sources list
       shell:  echo "deb http://packages.cloud.google.com/apt gcsfuse-`lsb_release -c -s` main" | sudo tee /etc/apt/sources.list.d/gcsfuse.list
