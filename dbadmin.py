@@ -41,9 +41,15 @@ def _run_commands(commands):
             return False
     return True
 
-def _apply_template_and_run_playbook(playbook, vars, hosts, debug=False, local=False):
-    _apply_template(_template_root + '/playbooks/' + playbook + '.yml', vars, _working_root + '/playbooks/' + playbook + '.yml')
-    _run_commands(['ansible-playbook ' + ('-vvvv -i ' if debug else '-i ') + hosts + ' ' + ('-c local ' if local else '') + _working_root + '/playbooks/' + playbook + '.yml'])
+def _apply_template_and_run_playbook(playbook, vars, hosts, step=None, debug=False, local=False):
+    playbook_dir = 'playbooks/' + playbook if step else 'playbooks'
+    if not os.path.exists(_working_root + '/' + playbook_dir):
+        os.makedirs(_working_root + '/' + playbook_dir)
+    playbook_name = step if step else playbook
+    template_path = _template_root + '/' + playbook_dir + '/' + playbook_name + '.yml'
+    output_path = _working_root + '/' + playbook_dir + '/' + playbook_name + '.yml'
+    _apply_template(template_path, vars, output_path)
+    _run_commands(['ansible-playbook ' + ('-vvvv -i ' if debug else '-i ') + hosts + ' ' + ('-c local ' if local else '') + output_path])
 
 def _get_terraform_state():
     return json.loads(subprocess.check_output(_as_array(_working_root + '/bin/terraform output --json --state=' + _working_root + '/terraform.tfstate')))
@@ -170,7 +176,9 @@ def reinit_standby_handler(args):
         'gcs_bucket': args.gcs_bucket,
         'dbadmin_script': os.path.realpath(__file__),
     }
-    _apply_template_and_run_playbook('reinit_standby', vars, hosts=_working_root + '/hosts', debug=args.debug)
+    _apply_template_and_run_playbook('reinit_standby', vars, step='backup_data_directory', hosts=_working_root + '/hosts', debug=args.debug)
+    _apply_template_and_run_playbook('reinit_standby', vars, step='delete_and_recreate', hosts=_working_root + '/hosts', debug=args.debug)
+    _apply_template_and_run_playbook('reinit_standby', vars, step='setup_standby', hosts=_working_root + '/hosts', debug=args.debug)
 
 def status_handler(args):
     _apply_template_and_run_playbook('status', {}, hosts=_working_root + '/hosts', debug=args.debug)
