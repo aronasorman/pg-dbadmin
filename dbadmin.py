@@ -84,18 +84,20 @@ def generate_hosts_handler(args):
         'replicas': [
         ]}
     replicas = set([ variable.split('_')[0] for variable in tfstate.keys() if 'barman' not in variable])
+    index = 0
     for replica in replicas:
         vars = {
             'hostname': replica,
             'external_ip': tfstate[replica + '_external_ip']['value'],
             'internal_ip': tfstate[replica + '_internal_ip']['value'],
-            'index': str(i+1)
+            'index': str(index+1)
         }
         hosts_vars['replicas'].append(vars)
         if replica == args.master_hostname:
             hosts_vars['master'] = vars
         else:
             hosts_vars['standby'].append(vars)
+        index += 1
     if 'master' not in hosts_vars:
         print('Error: The provided master hostname ' + args.master_hostname + ' does not exist in tfstate.')
         sys.exit()
