@@ -176,7 +176,8 @@ def reinit_standby_handler(args):
         'gcs_bucket': args.gcs_bucket,
         'dbadmin_script': os.path.realpath(__file__),
     }
-    _apply_template_and_run_playbook('reinit_standby', vars, step='backup_data_directory', hosts=_working_root + '/hosts', debug=args.debug)
+    if args.gcs_bucket:
+        _apply_template_and_run_playbook('reinit_standby', vars, step='backup_data_directory', hosts=_working_root + '/hosts', debug=args.debug)
     _apply_template_and_run_playbook('reinit_standby', vars, step='delete_and_recreate', hosts=_working_root + '/hosts', debug=args.debug)
     _apply_template_and_run_playbook('reinit_standby', vars, step='setup_standby', hosts=_working_root + '/hosts', debug=args.debug)
 
