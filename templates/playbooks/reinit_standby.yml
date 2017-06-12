@@ -34,6 +34,7 @@
   tasks:
     - name: regenerate the hosts file.
       command: <[ dbadmin_script ]> generate-hosts --master_hostname=<[ master.hostname ]>
+    - action: setup
 
 # Install prerequisites for the standby.
 - hosts: <[ replica.hostname ]>
