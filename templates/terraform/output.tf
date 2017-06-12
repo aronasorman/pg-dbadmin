@@ -3,7 +3,7 @@ output "barman_internal_ip" {
 }
 
 output "barman_external_ip" {
-    value = "${google_compute_instance.barman.*.network_interface.0.access_config.0.assigned_nat_ip}"
+    value = "${google_compute_instance.barman.0.network_interface.0.access_config.0.assigned_nat_ip}"
 }
 
 <[ #replicas ]>
