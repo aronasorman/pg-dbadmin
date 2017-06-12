@@ -70,20 +70,20 @@
     - name: download stackdriver monitoring agent installer
       get_url:
         url: https://repo.stackdriver.com/stack-install.sh
-        dest: "{{ lookup('env', 'HOME') }}/.dbadmin/bin"
+        dest: "/tmp"
         mode: u+rwx
     
     - name: configure stackdriver monitoring
-      shell: "{{ lookup('env', 'HOME') }}/.dbadmin/bin/stack-install.sh --write-gcm"
+      shell: "/tmp/stack-install.sh --write-gcm"
     
     - name: download stackdriver logging agent installer
       get_url:
         url: https://dl.google.com/cloudagents/install-logging-agent.sh
-        dest: "{{ lookup('env', 'HOME') }}/.dbadmin/bin"
+        dest: "/tmp"
         mode: u+rwx
     
     - name: configure stackdriver monitoring
-      shell: "{{ lookup('env', 'HOME') }}/.dbadmin/bin/install-logging-agent.sh"
+      shell: "/tmp/install-logging-agent.sh"
 
 # Install and configure barman
 - hosts: barman
