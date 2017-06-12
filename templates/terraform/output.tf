@@ -1,5 +1,5 @@
 output "barman_internal_ip" {
-    value = "${google_compute_instance.barman.*.network_interface.0.address}"
+    value = "${google_compute_instance.barman.0.network_interface.0.address}"
 }
 
 output "barman_external_ip" {
