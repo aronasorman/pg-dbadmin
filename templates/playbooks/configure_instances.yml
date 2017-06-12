@@ -72,7 +72,6 @@
         url: https://repo.stackdriver.com/stack-install.sh
         dest: "{{ lookup('env', 'HOME') }}/.dbadmin/bin"
         mode: u+rwx
-        creates: "{{ lookup('env', 'HOME') }}/.dbadmin/bin/stack-install.sh"
     
     - name: configure stackdriver monitoring
       shell: "{{ lookup('env', 'HOME') }}/.dbadmin/bin/stack-install.sh --write-gcm"
@@ -82,7 +81,6 @@
         url: https://dl.google.com/cloudagents/install-logging-agent.sh
         dest: "{{ lookup('env', 'HOME') }}/.dbadmin/bin"
         mode: u+rwx
-        creates: "{{ lookup('env', 'HOME') }}/.dbadmin/bin/install-logging-agent.sh"
     
     - name: configure stackdriver monitoring
       shell: "{{ lookup('env', 'HOME') }}/.dbadmin/bin/install-logging-agent.sh"
