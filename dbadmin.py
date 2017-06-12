@@ -3,6 +3,7 @@ import argparse
 import subprocess
 import imp
 import os
+import json
 
 _script_root = os.path.dirname(os.path.realpath(__file__))
 _working_root = os.path.expanduser('~') + '/.dbadmin'
@@ -44,6 +45,9 @@ def _apply_template_and_run_playbook(playbook, vars, hosts, debug=False, local=F
     _apply_template(_template_root + '/playbooks/' + playbook + '.yml', vars, _working_root + '/playbooks/' + playbook + '.yml')
     _run_commands(['ansible-playbook ' + ('-vvvv -i ' if debug else '-i ') + hosts + ' ' + ('-c local ' if local else '') + _working_root + '/playbooks/' + playbook + '.yml'])
 
+def _get_terraform_state():
+    return json.loads(subprocess.check_output(_as_array(_working_root + '/bin/terraform output --json --state=' + _working_root + '/terraform.tfstate')))
+
 def terraform_instances_handler(args):
     # Generate the terraform variables configuration file and run terraform apply
     tf_vars = {
@@ -66,32 +70,41 @@ def terraform_instances_handler(args):
     _apply_template(_template_root + '/terraform/variables.tf', tf_vars, _working_root + '/terraform/variables.tf')
     _apply_template_and_run_playbook('terraform_instances', tf_vars, local=True, hosts=_script_root + '/hosts', debug=args.debug)
 
-def configure_instances_handler(args):
+def generate_hosts_handler(args):
     # Generate the hosts file from the output of the terraform step.
+    tfstate = _get_terraform_state()
     hosts_vars = {
         'barman': {
             'hostname': 'barman',
-            'external_ip': subprocess.check_output(_as_array(_working_root + '/bin/terraform output --state=' + _working_root + '/terraform.tfstate barman_external_ip')).rstrip(),
-            'internal_ip': subprocess.check_output(_as_array(_working_root + '/bin/terraform output --state=' + _working_root + '/terraform.tfstate  barman_internal_ip')).rstrip(),
+            'external_ip': tfstate['barman_external_ip']['value'],
+            'internal_ip': tfstate['barman_internal_ip']['value'],
         },
         'standby': [
         ],
         'replicas': [
         ]}
-    for i in xrange(args.num_replicas):
-        hostname = args.replica_hostname_prefix + str(i+1)
+    replicas = set([ variable.split('_')[0] for variable in tfstate.keys() if 'barman' not in variable])
+    for replica in replicas:
         vars = {
-            'hostname': hostname,
-            'external_ip': subprocess.check_output(_as_array(_working_root + '/bin/terraform output --state=' + _working_root + '/terraform.tfstate ' + hostname + '_external_ip')).rstrip(),
-            'internal_ip': subprocess.check_output(_as_array(_working_root + '/bin/terraform output --state=' + _working_root + '/terraform.tfstate ' + hostname + '_internal_ip')).rstrip(),
+            'hostname': replica,
+            'external_ip': tfstate[replica + '_external_ip']['value'],
+            'internal_ip': tfstate[replica + '_internal_ip']['value'],
             'index': str(i+1)
         }
         hosts_vars['replicas'].append(vars)
-        if i == 0:
+        if replica == args.master_hostname:
             hosts_vars['master'] = vars
         else:
             hosts_vars['standby'].append(vars)
+    if 'master' not in hosts_vars:
+        print('Error: The provided master hostname ' + args.master_hostname + ' does not exist in tfstate.')
+        sys.exit()
     _apply_template(_template_root + '/hosts', hosts_vars, _working_root + '/hosts')
+    return hosts_vars
+
+def configure_instances_handler(args):
+    # Generate the hosts file from the provided arguments.
+    hosts_vars = generate_hosts_handler(args)
 
     # Generate configuration files needed for configuring the instances.
     for replica in hosts_vars['replicas']:
@@ -153,6 +166,7 @@ def reinit_standby_handler(args):
             'hostname': args.master_hostname,
         },
         'gcs_bucket': args.gcs_bucket,
+        'dbadmin_script': os.path.realpath(__file__),
     }
     _apply_template_and_run_playbook('reinit_standby', vars, hosts=_working_root + '/hosts', debug=args.debug)
 
@@ -190,19 +204,14 @@ terraform_instances_parser.add_argument('--region', required=True, help='The GCE
 terraform_instances_parser.add_argument('--disk_type', required=True, choices=['pd-ssd', 'pd-standard', 'local-ssd'], help='The type of the disk.')
 terraform_instances_parser.add_argument('--disk_size', required=True, help='The size of the disk.')
 terraform_instances_parser.add_argument('--machine_type', default='f1-micro', help='The machine type.')
-terraform_instances_parser.add_argument('--master_hostname', default='master', help='Host name for the master.')
-terraform_instances_parser.add_argument('--standby_hostname_prefix', default='standby', help='Hostname prefix for the standby instances.')
-terraform_instances_parser.add_argument('--num_standby', default=2, type=int, help='Number of standby instances.')
-terraform_instances_parser.add_argument('--replica_hostname_prefix', default='replica', help='Hostname prefix for the instances.')
-terraform_instances_parser.add_argument('--num_replicas', default=0, type=int, help='Number of replicas.')
+
+generate_hosts_parser = subparsers.add_parser('generate-hosts', help='Generates a hosts file in the .dbadmin directory based upon the current tfstate. Useful for running ansible commands.')
+generate_hosts_parser.set_defaults(handler=generate_hosts_handler)
+generate_hosts_parser.add_argument('--master_hostname', required=True, help='Hostname of the replica to be configured as the master.')
 
 configure_instances_parser = subparsers.add_parser('configure-instances', help='Configure instances. Assumes instances have already been created, and a tfstate file exists.')
 configure_instances_parser.set_defaults(handler=configure_instances_handler)
-configure_instances_parser.add_argument('--master_hostname', default='master', help='Host name for the master.')
-configure_instances_parser.add_argument('--standby_hostname_prefix', default='standby', help='Hostname prefix for the standby instances.')
-configure_instances_parser.add_argument('--num_standby', default=2, type=int, help='Number of standby instances.')
-configure_instances_parser.add_argument('--replica_hostname_prefix', default='replica', help='Hostname prefix for the instances.')
-configure_instances_parser.add_argument('--num_replicas', default=0, type=int, help='Number of replicas.')
+configure_instances_parser.add_argument('--master_hostname', required=True, help='Hostname of the replica to be configured as the master.')
 configure_instances_parser.add_argument('--appserver_internalip', default=None, help='Internal IP address of the app server that will talk to the replicas.')
 
 restore_database_parser = subparsers.add_parser('restore-database', help='Restores the master from a sqldump stored in a Google Compute Storage bucket.')
@@ -219,11 +228,14 @@ status_parser = subparsers.add_parser('status', help='Show the current status of
 status_parser.set_defaults(handler=status_handler)
 
 reinit_standby_parser = subparsers.add_parser('reinit-standby', help='Brings down a failed instance and adds it back as a standby to the current configuration.')
-reinit_standby_parser.add_argument('--instance_hostname', required=True, help='Hostname of the failed instance to be added back as a standby.')
 reinit_standby_parser.add_argument('--master_hostname', required=True, help='Hostname of the current master.')
+reinit_standby_parser.add_argument('--instance_hostname', required=True, help='Hostname of the failed instance to be added back as a standby.')
 reinit_standby_parser.add_argument('--gcs_bucket', help='Optional bucket to backup the failed instance\'s data directory before recreating it.')
 reinit_standby_parser.set_defaults(handler=reinit_standby_handler)
 
+# Top-level arguments.
+parser.add_argument('--replica_hostname_prefix', default='replica', help='Hostname prefix for the instances.')
+parser.add_argument('--num_replicas', default=3, type=int, help='Number of replicas.')
 parser.add_argument('--version', default='stable', choices=['alpha', 'stable'], help='Version of dbadmin.py behavior.')
 parser.add_argument('--debug', default=False, type=bool, help='Show debug info or not.')
 
