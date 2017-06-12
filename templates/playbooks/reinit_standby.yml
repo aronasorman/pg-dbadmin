@@ -26,6 +26,8 @@
     - name: delete the failed master instance
       command: gcloud compute instances delete <[ replica.hostname ]>
       ignore_errors: true
+    - name: regenerate the hosts file.
+      command: <[ dbadmin_script ]> generate-hosts --master_hostname=<[ master.hostname ]>
 
 # Let terraform recreate the instance for us
 - include: "{{ lookup('env', 'HOME') }}/.dbadmin/playbooks/terraform_instances.yml"
