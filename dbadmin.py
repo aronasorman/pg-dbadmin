@@ -4,6 +4,7 @@ import subprocess
 import imp
 import os
 import json
+import sys
 
 _script_root = os.path.dirname(os.path.realpath(__file__))
 _working_root = os.path.expanduser('~') + '/.dbadmin'
