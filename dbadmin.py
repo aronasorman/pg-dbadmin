@@ -16,7 +16,7 @@ def _install_pystache_if_needed():
     try:
         imp.find_module('pystache')
     except:
-        subprocess.check_call('sudo pip install pystache'.split(), shell=True)
+        subprocess.check_call(_as_array('sudo pip install pystache'), shell=True)
 
 def _apply_template(template_file, args, output_file):
     _install_pystache_if_needed()
@@ -196,6 +196,9 @@ def reinit_standby_handler(args):
         'gcs_bucket': args.gcs_bucket,
         'dbadmin_script': os.path.realpath(__file__),
     }
+    if args.master_hostname == args.instance_hostname:
+        print('Check your arguments. You\'ve set --instance_hostname and --master_hostname to the same value. Maybe take a break and get a coffee?')
+        return
     if args.gcs_bucket:
         _apply_template_and_run_playbook('reinit_standby', vars, step='backup_data_directory', hosts=_working_root + '/hosts', debug=args.debug)
     _apply_template_and_run_playbook('reinit_standby', vars, step='delete_and_recreate', hosts=_working_root + '/hosts', debug=args.debug)
