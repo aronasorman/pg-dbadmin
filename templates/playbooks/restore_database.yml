@@ -41,10 +41,11 @@
 
 <[ #barman_restore ]>
 - hosts: <[ master.hostname ]>
-  - name: stop postgres server
-    service:
-      name: postgresql
-      state: stopped
+  tasks:
+    - name: stop postgres server
+      service:
+        name: postgresql
+        state: stopped
 
 - hosts: barman
   become: true
