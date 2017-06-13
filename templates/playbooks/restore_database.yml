@@ -61,14 +61,15 @@
     <[ /barman_target_time ]>
 
 - hosts: <[ master.hostname ]>
-  - name: start postgres server
-    service:
-      name: postgresql
-      state: started
-  - name: reload postgres configuration
-    service:
-      name: postgresql
-      state: reloaded
+  tasks:
+    - name: start postgres server
+      service:
+        name: postgresql
+        state: started
+    - name: reload postgres configuration
+      service:
+        name: postgresql
+        state: reloaded
 <[ /barman_restore ]>
 
 - hosts: barman
