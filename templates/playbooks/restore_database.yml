@@ -76,6 +76,7 @@
   tasks:
     - name: create replication slot
       command: barman receive-wal --create-slot <[ master.hostname ]>
+      ignore_errors: true
     - name: wait for 20s
       pause:
         seconds: 20
