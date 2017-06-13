@@ -160,9 +160,6 @@ def restore_database_handler(args):
             'dbuser': args.database_user,
             'master': {
                 'hostname': args.master_hostname
-            },
-            'instance': {
-                'hostname': args.instance_hostname
             }
         }
 
@@ -178,6 +175,7 @@ def restore_database_handler(args):
         
         if args.barman_source_server:
             db_import_vars.extend({
+                'source_server': args.barman_source_server,
                 'backup_id': args.barman_backup_id,
                 'target_time': args.barman_target_time,
                 'barman_restore': True

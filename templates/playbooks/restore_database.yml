@@ -47,10 +47,10 @@
   tasks:
     - name: run barman recover command
     <[ #barman_target_time ]>
-      command: barman recover --target-time <[ barman_target_time ]> --remote-ssh-command='ssh postgres@<[ instance.hostname ]>' <[ master.hostname ]> <[ barman_backup_id ]> /var/lib/postgresql/9.6/main
+      command: barman recover --target-time <[ target_time ]> --remote-ssh-command='ssh postgres@<[ master.hostname ]>' <[ source_server ]> <[ backup_id ]> /var/lib/postgresql/9.6/main
     <[ /barman_target_time ]>
     <[ ^barman_target_time ]>
-      command: barman recover --remote-ssh-command='ssh postgres@<[ instance.hostname ]>' <[ master.hostname ]> <[ barman_backup_id ]> /var/lib/postgresql/9.6/main
+      command: barman recover --remote-ssh-command='ssh postgres@<[ mater.hostname ]>' <[ source_server ]> <[ backup_id ]> /var/lib/postgresql/9.6/main
     <[ /barman_target_time ]>
 <[ /barman_restore ]>
 
