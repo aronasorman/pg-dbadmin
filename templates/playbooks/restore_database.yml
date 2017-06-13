@@ -74,6 +74,8 @@
 
 - hosts: barman
   tasks:
+    - name: create replication slot
+      command: barman receive-wal --create-slot <[ master.hostname ]>
     - name: switch-xlog
       command: barman switch-xlog --force --archive <[ master.hostname ]>
     - name: backup master server's data
