@@ -66,6 +66,24 @@
       lineinfile:
         dest: /etc/hosts
         line: "{{ ip.stdout }}"
+    
+    - name: download stackdriver monitoring agent installer
+      get_url:
+        url: https://repo.stackdriver.com/stack-install.sh
+        dest: "/tmp"
+        mode: u+rwx
+    
+    - name: configure stackdriver monitoring
+      shell: "/tmp/stack-install.sh --write-gcm"
+    
+    - name: download stackdriver logging agent installer
+      get_url:
+        url: https://dl.google.com/cloudagents/install-logging-agent.sh
+        dest: "/tmp"
+        mode: u+rwx
+    
+    - name: configure stackdriver monitoring
+      shell: "/tmp/install-logging-agent.sh"
 
 # We assume barman is already up and running. So just need to generate and
 # add this standby's configuration into barman.d, and take barman's ssh key

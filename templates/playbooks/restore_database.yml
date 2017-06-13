@@ -1,4 +1,5 @@
 ---
+<[ #gcs_restore ]>
 - hosts: <[ master.hostname ]>
   tasks:
     - name: create the user
@@ -9,6 +10,7 @@
       postgresql_db:
         name: <[ dbname ]>
         owner: <[ dbuser ]>
+
     - name: create a .gcloud directory readable only by root.
       file:
         name: "{{ ansible_env.HOME }}/.gcloud"
@@ -35,6 +37,22 @@
     
     - name: unmount the sqldump bucket
       command: "fusermount -u {{ ansible_env.HOME }}/.gcloud/storage"
+<[ /gcs_restore ]>
+
+<[ #barman_restore ]>
+- hosts: barman
+  become: true
+  become_user: barman
+  become_method: sudo
+  tasks:
+    - name: run barman recover command
+    <[ #barman_target_time ]>
+      command: barman recover --target-time <[ barman_target_time ]> --remote-ssh-command='ssh postgres@<[ instance.hostname ]>' <[ master.hostname ]> <[ barman_backup_id ]> /var/lib/postgresql/9.6/main
+    <[ /barman_target_time ]>
+    <[ ^barman_target_time ]>
+      command: barman recover --remote-ssh-command='ssh postgres@<[ instance.hostname ]>' <[ master.hostname ]> <[ barman_backup_id ]> /var/lib/postgresql/9.6/main
+    <[ /barman_target_time ]>
+<[ /barman_restore ]>
 
 - hosts: barman
   tasks:

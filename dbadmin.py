@@ -150,19 +150,41 @@ def configure_instances_handler(args):
 
 def restore_database_handler(args):
     # Run the sql import on the master if the corresponding flags have been set.
-    if args.sqldump_location and args.sqldump_location.find(':') > 0:
+    if args.sqldump_location or args.barman_source_server:
+        if args.sqldump_location and args.barman_source_server:
+            print('Only one of sqldump_location or barman_source_server must be specified.')
+            return
+        
         db_import_vars = {
             'dbname': args.database_name,
             'dbuser': args.database_user,
-            'db_import_bucket': args.sqldump_location.split(':')[0],
-            'db_import_path': args.sqldump_location.split(':')[1],
             'master': {
                 'hostname': args.master_hostname
+            },
+            'instance': {
+                'hostname': args.instance_hostname
             }
         }
+
+        if args.sqldump_location:
+            if args.sqldump_location.find(':') > 0:
+                db_import_vars.extend({
+                    'db_import_bucket': args.sqldump_location.split(':')[0],
+                    'db_import_path': args.sqldump_location.split(':')[1],
+                    'gcs_restore': True
+                })
+            else:
+                print('Location of sqldump on Google Cloud Storage for initializing the database must be in the form [storage-bucket]:[path/to/sql/file].') 
+        
+        if args.barman_source_server:
+            db_import_vars.extend({
+                'backup_id': args.barman_backup_id,
+                'target_time': args.barman_target_time,
+                'barman_restore': True
+            })
         _apply_template_and_run_playbook('restore_database', db_import_vars, hosts=_working_root + '/hosts', debug=args.debug)
     else:
-        print('Location of sqldump on Google Cloud Storage for initializing the database must be in the form [storage-bucket]:[path/to/sql/file].')
+        print('Either of sqldump_location or barman_source_server must be specified.')
 
 def reinit_standby_handler(args):
     # Destroy the instance and recreate it the terraform configuration files.
@@ -231,8 +253,8 @@ restore_database_parser.add_argument('--master_hostname', required=True, help='H
 restore_database_parser.add_argument('--database_name', required=True, help='Name of the database to be created.')
 restore_database_parser.add_argument('--database_user', required=True, help='Name of the user to be created to access postgres.')
 restore_database_parser.add_argument('--barman_source_server', help='The host from which to restore, as registered on Barman.')
-restore_database_parser.add_argument('--barman_backup_id', help='The backup id for the specified host. If you want to use the latest backup, use \latest\'')
-restore_database_parser.add_argument('--barman_target_time', help='The point in time to recover. Make sure this is between the begin_time and end_time of the back up specified.')
+restore_database_parser.add_argument('--barman_backup_id', default='latest', help='The backup id for the specified host. By default, \'latest\'')
+restore_database_parser.add_argument('--barman_target_time', default=None, help='The point in time to recover. Make sure this is between the begin_time and end_time of the back up specified.')
 restore_database_parser.add_argument('--sqldump_location', help='Location of sqldump on Google Cloud Storage for initializing the database, in the form [storage-bucket]:[path/to/sql/file].')
 
 status_parser = subparsers.add_parser('status', help='Show the current status of the setup.')
