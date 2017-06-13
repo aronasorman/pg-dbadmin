@@ -40,6 +40,12 @@
 <[ /gcs_restore ]>
 
 <[ #barman_restore ]>
+- hosts: <[ master.hostname ]>
+  - name: stop postgres server
+    service:
+      name: postgresql
+      state: stopped
+
 - hosts: barman
   become: true
   become_user: barman
@@ -52,6 +58,16 @@
     <[ ^barman_target_time ]>
       command: barman recover --remote-ssh-command='ssh postgres@<[ master.hostname ]>' <[ source_server ]> <[ backup_id ]> /var/lib/postgresql/9.6/main
     <[ /barman_target_time ]>
+
+- hosts: <[ master.hostname ]>
+  - name: start postgres server
+    service:
+      name: postgresql
+      state: started
+  - name: reload postgres configuration
+    service:
+      name: postgresql
+      state: reloaded
 <[ /barman_restore ]>
 
 - hosts: barman
