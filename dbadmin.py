@@ -165,7 +165,7 @@ def restore_database_handler(args):
 
         if args.sqldump_location:
             if args.sqldump_location.find(':') > 0:
-                db_import_vars.extend({
+                db_import_vars.update({
                     'db_import_bucket': args.sqldump_location.split(':')[0],
                     'db_import_path': args.sqldump_location.split(':')[1],
                     'gcs_restore': True
@@ -174,7 +174,7 @@ def restore_database_handler(args):
                 print('Location of sqldump on Google Cloud Storage for initializing the database must be in the form [storage-bucket]:[path/to/sql/file].') 
         
         if args.barman_source_server:
-            db_import_vars.extend({
+            db_import_vars.update({
                 'source_server': args.barman_source_server,
                 'backup_id': args.barman_backup_id,
                 'target_time': args.barman_target_time,
