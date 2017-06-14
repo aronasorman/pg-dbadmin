@@ -285,6 +285,7 @@
   tasks:
     - name: delete replication slot for <[ replica.hostname ]>
       command: barman receive-wal --drop-slot <[ replica.hostname ]>
+      ignore_errors: true
       
     - name: create replication slot for <[ replica.hostname ]>
       command: barman receive-wal --create-slot <[ replica.hostname ]>
