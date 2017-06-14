@@ -264,7 +264,7 @@
       become_user: postgres
       become_method: sudo
 
-#    - block:
+    - block:
 #      - name: register as standby
 #        command: repmgr -f /etc/repmgr.conf -D /var/lib/postgresql/9.6/main -h <[ master.hostname ]> -F standby follow
 #        when:  '"standby" not in host_replica_type.stdout'
