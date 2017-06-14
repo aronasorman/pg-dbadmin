@@ -265,9 +265,9 @@
       become_method: sudo
 
     - block:
-#      - name: register as standby
-#        command: repmgr -f /etc/repmgr.conf -D /var/lib/postgresql/9.6/main -h <[ master.hostname ]> -F standby follow
-#        when:  '"standby" not in host_replica_type.stdout'
+      - name: register as standby
+        command: repmgr -f /etc/repmgr.conf -D /var/lib/postgresql/9.6/main -h <[ master.hostname ]> -F standby follow
+        when:  '"standby" not in host_replica_type.stdout'
 
       - name: start repmgrd
         shell: >
@@ -279,10 +279,13 @@
 
 # Prepare barman to receive wals from standbys.
 - hosts: barman
+  become: true
+  become_method: sudo
+  become_user: barman
   tasks:
+    - name: delete replication slot for <[ replica.hostname ]>
+      command: barman receive-wal --drop-slot <[ replica.hostname ]>
+      
     - name: create replication slot for <[ replica.hostname ]>
       command: barman receive-wal --create-slot <[ replica.hostname ]>
-      become: true
-      become_method: sudo
-      become_user: barman
       ignore_errors: true
